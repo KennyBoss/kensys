@@ -22,16 +22,16 @@
     "code-map",
     "ai-tools"
   ],
-  "author": "Your Name <your-email@example.com>",
+  "author": "Kenan <nanek7musaev@gmail.com>",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/kensys"
+    "url": "https://github.com/KennyBoss/kensys"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/kensys/issues"
+    "url": "https://github.com/KennyBoss/kensys/issues"
   },
-  "homepage": "https://github.com/yourusername/kensys#readme",
+  "homepage": "https://github.com/KennyBoss/kensys#readme",
   "devDependencies": {
     "@types/node": "^24.10.1",
     "ts-node": "^10.9.2",
