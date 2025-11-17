@@ -74,13 +74,13 @@ npm install kensys
 ### Базовое
 ```bash
 kensys analyze /path/to/project
-# Создаст: codex.json
+# Создаст: kensys.json
 ```
 
 ### С параметрами
 ```bash
 kensys analyze ./my-app \
-  --output ./my-codex.json \
+  --output ./kensys.json \
   --name "MyApplication"
 ```
 
@@ -94,7 +94,7 @@ npm run build && npm run dev analyze ./src
 ## 📊 Структура выхода
 
 ```
-codex.json
+kensys.json
 ├── projectName          # Название проекта
 ├── language            # js, ts, py, go...
 ├── filesAnalyzed       # Сколько файлов проанализировано
@@ -151,7 +151,7 @@ FEATURE: Checkout
 ### В Claude Code
 ```typescript
 // Читаем codex
-const codex = require('./codex.json');
+const codex = require('./kensys.json');
 
 // Claude видит всю архитектуру
 // и может безошибочно добавлять функции,
@@ -163,7 +163,7 @@ const codex = require('./codex.json');
 # Анализируем проект
 kensys analyze ./casino-backend
 
-# Claude/Gemini читает codex.json
+# Claude/Gemini читает kensys.json
 # и работает с проектом как профессионал
 ```
 

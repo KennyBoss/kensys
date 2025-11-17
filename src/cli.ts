@@ -15,12 +15,12 @@ ${chalk.bold('Usage:')}
   kensys analyze <project-path> [--output <file>] [--name <project-name>]
 
 ${chalk.bold('Options:')}
-  --output, -o    Output file path (default: codex.json)
+  --output, -o    Output file path (default: kensys.json)
   --name, -n      Project name (default: folder name)
 
 ${chalk.bold('Examples:')}
   kensys analyze ./my-project
-  kensys analyze ./my-project --output ./codex.json --name "MyApp"
+  kensys analyze ./my-project --output ./kensys.json --name "MyApp"
 `);
 }
 
@@ -46,7 +46,7 @@ async function main() {
   }
 
   // Парсим опции
-  let outputFile = 'codex.json';
+  let outputFile = 'kensys.json';
   let projectName: string | undefined;
 
   for (let i = 2; i < args.length; i++) {
