@@ -1,0 +1,12 @@
+node_modules/
+dist/
+*.json
+!package.json
+!tsconfig.json
+.DS_Store
+*.log
+*.env
+.vscode/
+.idea/
+coverage/
+*-codex.json
