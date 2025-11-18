@@ -74,6 +74,34 @@ export interface CodeQuality {
   recommendations: string[];
 }
 
+export interface ProjectEntry {
+  type: 'function' | 'class' | 'module';
+  name: string;
+  description: string;
+  location: string;
+  dependencies: string[];
+  importance: 'critical' | 'high' | 'medium' | 'low';
+}
+
+export interface ProjectArchitecture {
+  mainModules: string[];
+  entryPoints: string[];
+  layerStructure: Record<string, string[]>;
+  dependencies: Record<string, string[]>;
+}
+
+export interface ProjectPassport {
+  projectName: string;
+  summary: string;
+  language: string;
+  filesAnalyzed: number;
+  architecture: ProjectArchitecture;
+  criticalFunctions: ProjectEntry[];
+  keyModules: ProjectEntry[];
+  warnings: string[];
+  tips: string[];
+}
+
 export interface ProjectCodex {
   projectName: string;
   description?: string;
@@ -86,6 +114,7 @@ export interface ProjectCodex {
   dependencies: DependencyGraph;
   searchIndex?: SearchIndex;
   quality?: CodeQuality;
+  passport?: ProjectPassport;
 }
 
 export interface DependencyGraph {

@@ -78,7 +78,39 @@ async function main() {
     fs.writeFileSync(outputPath, JSON.stringify(codex, null, 2));
 
     console.log(chalk.green('✅ Analysis complete!'));
-    console.log(chalk.green(`📊 Files analyzed: ${codex.filesAnalyzed}`));
+
+    // Показываем проектный паспорт
+    if (codex.passport) {
+      console.log(chalk.cyan('\n📋 PROJECT PASSPORT FOR AI:'));
+      console.log(chalk.gray(`${codex.passport.summary}`));
+
+      console.log(chalk.cyan('\n🏗️  Architecture:'));
+      if (codex.passport.architecture.entryPoints.length > 0) {
+        console.log(chalk.gray(`  Entry Points: ${codex.passport.architecture.entryPoints.join(', ')}`));
+      }
+      console.log(chalk.gray(`  Main Modules: ${codex.passport.architecture.mainModules.join(', ')}`));
+
+      if (codex.passport.criticalFunctions.length > 0) {
+        console.log(chalk.cyan('\n⭐ Critical Functions:'));
+        for (const func of codex.passport.criticalFunctions.slice(0, 3)) {
+          console.log(chalk.gray(`  • ${func.name} (${func.importance})`));
+        }
+      }
+
+      if (codex.passport.warnings.length > 0) {
+        console.log(chalk.yellow('\n⚠️  Warnings:'));
+        for (const warning of codex.passport.warnings.slice(0, 3)) {
+          console.log(chalk.gray(`  ${warning}`));
+        }
+      }
+
+      console.log(chalk.cyan('\n💡 Tips for AI:'));
+      for (const tip of codex.passport.tips) {
+        console.log(chalk.gray(`  ${tip}`));
+      }
+    }
+
+    console.log(chalk.green(`\n📊 Files analyzed: ${codex.filesAnalyzed}`));
     console.log(chalk.green(`🔧 Functions found: ${codex.allFunctions.length}`));
     console.log(chalk.green(`📦 Classes found: ${codex.allClasses.length}`));
     console.log(chalk.green(`🎯 Features identified: ${codex.features.length}`));

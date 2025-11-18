@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { glob } from 'glob';
-import type { FileAnalysis, ProjectCodex, Feature, DependencyGraph, DependencyNode, DependencyEdge, SearchIndex, Function, CodeQuality, CodeIssue } from '../models/types';
+import type { FileAnalysis, ProjectCodex, Feature, DependencyGraph, DependencyNode, DependencyEdge, SearchIndex, Function, CodeQuality, CodeIssue, ProjectPassport, ProjectEntry, ProjectArchitecture } from '../models/types';
 import JavaScriptParser from '../parser/js-parser';
 
 export class ProjectAnalyzer {
@@ -49,6 +49,9 @@ export class ProjectAnalyzer {
     // Анализируем качество кода
     const quality = this.analyzeCodeQuality();
 
+    // Генерируем проектный паспорт для AI
+    const passport = this.generateProjectPassport(projectName, features, quality);
+
     const allFunctions = this.allFiles.flatMap(f => f.functions);
     const allClasses = this.allFiles.flatMap(f => f.classes);
 
@@ -63,6 +66,7 @@ export class ProjectAnalyzer {
       dependencies,
       searchIndex,
       quality,
+      passport,
     };
   }
 
@@ -390,6 +394,126 @@ export class ProjectAnalyzer {
       'validate', 'check', 'verify', 'authenticate', 'authorize',
     ]);
     return commonMethods.has(funcName);
+  }
+
+  /**
+   * Генерирует проектный паспорт для быстрого понимания проекта AI
+   */
+  private generateProjectPassport(
+    projectName: string | undefined,
+    features: Feature[],
+    quality: CodeQuality
+  ): ProjectPassport {
+    const name = projectName || 'Unknown Project';
+    const allFunctions = this.allFiles.flatMap(f => f.functions);
+
+    // Находим основные модули (файлы с наибольшим количеством функций)
+    const mainModules = this.allFiles
+      .sort((a, b) => b.functions.length - a.functions.length)
+      .slice(0, 5)
+      .map(f => path.basename(f.path));
+
+    // Находим entry points (main, index, app, server и т.д.)
+    const entryPoints = this.allFiles
+      .filter(f => {
+        const name = path.basename(f.path).toLowerCase();
+        return name === 'index.js' || name === 'index.ts' ||
+               name === 'app.js' || name === 'app.ts' ||
+               name === 'server.js' || name === 'server.ts' ||
+               name === 'main.js' || name === 'main.ts';
+      })
+      .map(f => path.basename(f.path));
+
+    // Определяем слои архитектуры (src/models, src/services и т.д.)
+    const layerMap = new Map<string, string[]>();
+    for (const file of this.allFiles) {
+      const parts = file.path.split(path.sep);
+      const srcIndex = parts.indexOf('src');
+      if (srcIndex !== -1 && srcIndex + 1 < parts.length) {
+        const layer = parts[srcIndex + 1];
+        if (!layerMap.has(layer)) {
+          layerMap.set(layer, []);
+        }
+        layerMap.get(layer)!.push(path.basename(file.path));
+      }
+    }
+
+    // Находим критические функции (вызываются часто или в основных модулях)
+    const functionCallCount = new Map<string, number>();
+    for (const file of this.allFiles) {
+      for (const func of file.functions) {
+        functionCallCount.set(func.name, (functionCallCount.get(func.name) || 0) + func.calls.length);
+      }
+    }
+
+    const criticalFunctions: ProjectEntry[] = Array.from(functionCallCount.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([name, calls]) => {
+        const func = allFunctions.find(f => f.name === name);
+        return {
+          type: 'function',
+          name,
+          description: func?.logic || `Function with ${calls} dependencies`,
+          location: func?.location.file || 'unknown',
+          dependencies: func?.calls || [],
+          importance: calls > 10 ? 'critical' : calls > 5 ? 'high' : 'medium',
+        };
+      });
+
+    // Ключевые модули
+    const keyModules: ProjectEntry[] = this.allFiles
+      .sort((a, b) => b.functions.length - a.functions.length)
+      .slice(0, 5)
+      .map(file => ({
+        type: 'module',
+        name: path.basename(file.path),
+        description: `Module with ${file.functions.length} functions and ${file.classes.length} classes`,
+        location: file.path,
+        dependencies: [...new Set(file.functions.flatMap(f => f.calls))],
+        importance: file.functions.length > 10 ? 'critical' : file.functions.length > 5 ? 'high' : 'medium',
+      }));
+
+    // Предупреждения
+    const warnings: string[] = [];
+    if (quality.todoCount > 0) {
+      warnings.push(`⚠️ ${quality.todoCount} TODO comments found`);
+    }
+    if (quality.fixmeCount > 0) {
+      warnings.push(`⚠️ ${quality.fixmeCount} FIXME comments found`);
+    }
+    const missingFuncCount = quality.issues.filter(i => i.type === 'missing-function').length;
+    if (missingFuncCount > 0) {
+      warnings.push(`⚠️ ${missingFuncCount} missing functions detected`);
+    }
+    if (quality.functionsWithDocstring < allFunctions.length * 0.5) {
+      warnings.push(`⚠️ Less than 50% of functions have documentation`);
+    }
+
+    // Советы
+    const tips: string[] = [
+      `📌 Start with entry points: ${entryPoints.join(', ') || 'index.js/main.js'}`,
+      `📦 Main modules: ${mainModules.join(', ')}`,
+      `🔍 Total functions: ${allFunctions.length}, Classes: ${this.allFiles.flatMap(f => f.classes).length}`,
+      `✅ Error handling coverage: ${Math.round((quality.functionsWithErrorHandling / allFunctions.length) * 100)}%`,
+    ];
+
+    return {
+      projectName: name,
+      summary: `${name} - ${features.length} features, ${allFunctions.length} functions, ${features.reduce((sum, f) => sum + f.files.length, 0)} files`,
+      language: this.detectLanguage(),
+      filesAnalyzed: this.allFiles.length,
+      architecture: {
+        mainModules,
+        entryPoints,
+        layerStructure: Object.fromEntries(layerMap),
+        dependencies: {},
+      },
+      criticalFunctions,
+      keyModules,
+      warnings,
+      tips,
+    };
   }
 
   /**
