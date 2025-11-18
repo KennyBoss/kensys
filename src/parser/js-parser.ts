@@ -213,12 +213,46 @@ export class JavaScriptParser {
     // Простой regex для поиска вызовов функций
     const callPattern = /([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\(/g;
     const calls: string[] = [];
-    let match;
+    const likelyParameters = new Set<string>();
 
+    // Извлекаем вероятные параметры (одно-буквенные имена и общие параметры)
+    const paramPattern = /function\s*[^(]*\(\s*([^)]*)\)|const\s+(\w+)\s*=\s*(\(.*?\).*?=>)|=>\s*(\w+)\s*=>/g;
+    let paramMatch;
+    while ((paramMatch = paramPattern.exec(text)) !== null) {
+      if (paramMatch[1]) {
+        // function params
+        const params = paramMatch[1].split(',').map(p => p.trim().split(':')[0].trim());
+        params.forEach(p => {
+          if (p && p.length <= 2) likelyParameters.add(p); // Одно-буквенные параметры
+        });
+      }
+    }
+
+    let match;
     while ((match = callPattern.exec(text)) !== null) {
       const funcName = match[1];
+
       // Исключаем ключевые слова
-      if (!this.isKeyword(funcName) && !calls.includes(funcName)) {
+      if (this.isKeyword(funcName)) continue;
+
+      // Исключаем явные параметры
+      if (likelyParameters.has(funcName)) continue;
+
+      // Исключаем очевидные параметры/переменные (одна буква)
+      if (funcName.length === 1) continue;
+
+      // Исключаем React setState методы которые параметры
+      if (/^(set[A-Z]|on[A-Z]|handle[A-Z]|get[A-Z])/.test(funcName) &&
+          text.includes(`${funcName}`)) {
+        // Проверяем если это параметр функции или жёсткий вызов
+        // Если встречается как `setX(` то это вызов, если как параметр `{ setX }` то это деструктуризация
+        const beforeMatch = text.substring(Math.max(0, text.indexOf(match[0]) - 30), text.indexOf(match[0]));
+        if (beforeMatch.includes('= (') || beforeMatch.includes('={') || beforeMatch.includes(': ')) {
+          continue; // Это параметр
+        }
+      }
+
+      if (!calls.includes(funcName)) {
         calls.push(funcName);
       }
     }

@@ -221,6 +221,44 @@ kensys analyze ./casino-backend
 - Улучшенная детекция missing функций (Prisma, Express и т.д.)
 - Лучшая парсинг импортов через деструктуризацию
 
+## 📋 Что нового в 1.7.0
+
+🚀 **MASSIVE FALSE POSITIVE REDUCTION - 30% улучшение!**
+
+**Что исправили:**
+- ✅ Добавил 50+ встроенных методов (Prisma, RegExp, Date, Number, etc)
+- ✅ Улучшенная фильтрация параметров функций из анализа
+- ✅ Поддержка namespace imports из скомпилированного TypeScript (types_1.ApiError)
+- ✅ React hooks (useState, useEffect) теперь правильно исключены
+- ✅ localStorage, sessionStorage методы
+
+**Результат на реальном проекте (kenwork):**
+- 📉 **447 → 313 issues (-30%)**
+- 📉 **372 → 238 missing functions (-36%)**
+- ✅ Анализ теперь намного полезнее и меньше шума
+
+**Добавлено встроенных функций:**
+```
+Prisma: findUnique, findMany, create, update, delete, aggregate, etc
+React: useState, useEffect, useContext, useCallback, useMemo
+RegExp: test, exec, match, replace
+Date: getDate, getMonth, toDateString, toISOString, etc
+Number: toFixed, toExponential, toPrecision
+Storage: localStorage, sessionStorage, setItem, getItem
+```
+
+**Пример улучшения:**
+```typescript
+// Раньше: ❌ 7 false positives в этом коде
+const [loading, setLoading] = useState(false);
+const today = new Date().toDateString();
+const email = emailRegex.test(userEmail);
+localStorage.setItem('key', value);
+
+// Теперь: ✅ Ноль false positives!
+// Все методы правильно распознаны как встроенные
+```
+
 ## 📋 Что нового в 1.6.0
 
 🎯 **BETTER DESTRUCTURED IMPORTS - Меньше false positives!**

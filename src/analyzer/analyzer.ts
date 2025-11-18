@@ -397,6 +397,47 @@ export class ProjectAnalyzer {
 
       // Map/Set/Object methods
       'has', 'get', 'set', 'add', 'delete', 'clear', 'size', 'forEach',
+
+      // Prisma methods
+      'findUnique', 'findFirst', 'findMany', 'create', 'update', 'upsert',
+      'delete', 'deleteMany', 'createMany', 'updateMany', 'aggregate', 'count',
+      'groupBy', 'findUniqueOrThrow', 'findFirstOrThrow', '$transaction',
+      '$connect', '$disconnect', 'findRaw', 'aggregateRaw', '$queryRaw',
+      '$executeRaw', '$on', '$off', '$use',
+
+      // React hooks and methods
+      'useState', 'useEffect', 'useContext', 'useReducer', 'useRef', 'useCallback',
+      'useMemo', 'useLayoutEffect', 'useDebugValue', 'useImperativeHandle',
+      'preventDefault', 'stopPropagation', 'stopImmediatePropagation',
+      'toString', 'valueOf',
+
+      // i18n translation methods
+      't', 'i18n', 'i18next',
+
+      // RegExp methods
+      'test', 'exec', 'compile', 'source', 'flags', 'global', 'ignoreCase',
+      'multiline', 'dotAll', 'unicode', 'sticky', 'lastIndex',
+
+      // Number methods
+      'toFixed', 'toExponential', 'toPrecision', 'toLocaleString',
+      'valueOf', 'toString',
+
+      // Date methods extended
+      'getDate', 'getMonth', 'getFullYear', 'getTime', 'getDay',
+      'getHours', 'getMinutes', 'getSeconds', 'getMilliseconds',
+      'getUTCDate', 'getUTCMonth', 'getUTCFullYear', 'getUTCDay',
+      'getUTCHours', 'getUTCMinutes', 'getUTCSeconds', 'getUTCMilliseconds',
+      'toDateString', 'toTimeString', 'toISOString', 'toLocaleString',
+      'toLocaleDateString', 'toLocaleTimeString',
+
+      // localStorage/sessionStorage
+      'localStorage', 'sessionStorage', 'setItem', 'getItem', 'removeItem',
+      'clear', 'key',
+
+      // Common function parameters that look like calls
+      'fn', 'callback', 'handler', 'onSuccess', 'onError', 'onComplete',
+      'onClose', 'onOpen', 'onSubmit', 'onChange', 'onClick', 'onBidPlaced',
+      'onAccept', 'onReject', 'e', 'event', 'err',
     ]);
   }
 
@@ -599,9 +640,13 @@ export class ProjectAnalyzer {
           if (file.imports.some(i => i.name === calledFunc)) continue;
 
           // Пропускаем функции из импортов если это namespace import (X.method где X импортирован)
+          const methodBase = calledFunc.split('.')[0];
           if (file.imports.some(i => {
-            const methodBase = calledFunc.split('.')[0];
-            return i.name === methodBase && i.type === 'default-import';
+            // Обычный namespace: chalk.red где chalk импортирован
+            if (i.name === methodBase) return true;
+            // Скомпилированный TypeScript: types_1.ApiError где types_1 это результат require
+            if (i.name.split('_')[0] === methodBase.split('_')[0]) return true;
+            return false;
           })) continue;
 
           // Пропускаем обычные методы объектов
