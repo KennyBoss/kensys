@@ -110,6 +110,29 @@ async function main() {
       }
     }
 
+    // Показываем данные о сущностях (важно для AI!)
+    if (codex.dataDictionary && codex.dataDictionary.entities.length > 0) {
+      console.log(chalk.cyan('\n📊 DATA ENTITIES (for AI clarity):'));
+      console.log(chalk.gray(`  Found ${codex.dataDictionary.entities.length} data entities with mappings`));
+
+      for (const entity of codex.dataDictionary.entities.slice(0, 3)) {
+        console.log(chalk.yellow(`\n  ⚡ ${entity.primaryName}`));
+        console.log(chalk.gray(`     Aliases: ${entity.aliases.join(', ')}`));
+        if (entity.warnings.length > 0) {
+          for (const warning of entity.warnings.slice(0, 2)) {
+            console.log(chalk.red(`     ${warning}`));
+          }
+        }
+      }
+
+      if (codex.dataDictionary.typeMismatches.length > 0) {
+        console.log(chalk.yellow('\n  ⚠️  TYPE MISMATCHES (CRITICAL!):'));
+        for (const mismatch of codex.dataDictionary.typeMismatches.slice(0, 3)) {
+          console.log(chalk.red(`     ${mismatch}`));
+        }
+      }
+    }
+
     console.log(chalk.green(`\n📊 Files analyzed: ${codex.filesAnalyzed}`));
     console.log(chalk.green(`🔧 Functions found: ${codex.allFunctions.length}`));
     console.log(chalk.green(`📦 Classes found: ${codex.allClasses.length}`));

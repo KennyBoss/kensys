@@ -3,6 +3,7 @@ import * as path from 'path';
 import { glob } from 'glob';
 import type { FileAnalysis, ProjectCodex, Feature, DependencyGraph, DependencyNode, DependencyEdge, SearchIndex, Function, CodeQuality, CodeIssue, ProjectPassport, ProjectEntry, ProjectArchitecture } from '../models/types';
 import JavaScriptParser from '../parser/js-parser';
+import EntityMapper, { type DataDictionary } from './entity-mapper';
 
 export class ProjectAnalyzer {
   private parser: JavaScriptParser;
@@ -52,6 +53,10 @@ export class ProjectAnalyzer {
     // Генерируем проектный паспорт для AI
     const passport = this.generateProjectPassport(projectName, features, quality);
 
+    // Анализируем сущности данных и маппируем их между слоями
+    const entityMapper = new EntityMapper();
+    const dataDictionary = entityMapper.analyzeEntities(this.allFiles);
+
     const allFunctions = this.allFiles.flatMap(f => f.functions);
     const allClasses = this.allFiles.flatMap(f => f.classes);
 
@@ -67,6 +72,7 @@ export class ProjectAnalyzer {
       searchIndex,
       quality,
       passport,
+      dataDictionary,
     };
   }
 

@@ -115,6 +115,7 @@ export interface ProjectCodex {
   searchIndex?: SearchIndex;
   quality?: CodeQuality;
   passport?: ProjectPassport;
+  dataDictionary?: any; // Will be populated by EntityMapper
 }
 
 export interface DependencyGraph {
