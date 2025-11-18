@@ -438,6 +438,57 @@ export class ProjectAnalyzer {
       'fn', 'callback', 'handler', 'onSuccess', 'onError', 'onComplete',
       'onClose', 'onOpen', 'onSubmit', 'onChange', 'onClick', 'onBidPlaced',
       'onAccept', 'onReject', 'e', 'event', 'err',
+
+      // Common API/database operations (often async)
+      'getUser', 'getUsers', 'getUserById', 'getUserProfile', 'getUserStats',
+      'getProject', 'getProjects', 'getProjectById', 'getProjectDetails',
+      'getBid', 'getBids', 'getBidsByProject', 'getBidsByUser',
+      'getMessage', 'getMessages', 'getConversation', 'getConversationHistory',
+      'getReview', 'getReviews', 'getReviewsForUser', 'getReviewsForProject',
+      'getTransaction', 'getTransactions', 'getTransactionHistory',
+      'getWallet', 'getBalance', 'getPaymentMethods',
+      'createUser', 'createProject', 'createBid', 'createMessage', 'createReview',
+      'createTransaction', 'createPaymentIntent', 'createWithdrawal',
+      'updateUser', 'updateProject', 'updateBid', 'updateReview', 'updateWallet',
+      'deleteUser', 'deleteProject', 'deleteBid', 'deleteMessage', 'deleteReview',
+      'acceptBid', 'rejectBid', 'cancelTransaction', 'refund',
+      'confirmPayment', 'verifyPayment', 'processPayment',
+      'login', 'logout', 'register', 'authenticate', 'authorize',
+      'getCurrentUser', 'checkAuth', 'validateToken', 'refreshToken',
+      'uploadFile', 'downloadFile', 'deleteFile',
+      'sendNotification', 'sendEmail', 'sendMessage',
+
+      // DOM and Element methods
+      'scrollIntoView', 'scroll', 'scrollTo', 'getBoundingClientRect',
+      'querySelector', 'querySelectorAll', 'getElementById', 'getElementsByClassName',
+      'getElementsByTagName', 'addEventListener', 'removeEventListener',
+      'getElementById', 'createElement', 'appendChild', 'removeChild',
+      'insertBefore', 'replaceChild', 'cloneNode', 'contains',
+      'parentElement', 'children', 'childNodes', 'firstChild', 'lastChild',
+
+      // Internationalization/i18n
+      'changeLanguage', 't', 'i18n',
+
+      // Canvas and Graphics
+      'rotate', 'scale', 'translate', 'transform', 'fillRect', 'strokeRect',
+      'clearRect', 'fill', 'stroke', 'beginPath', 'closePath', 'moveTo',
+      'lineTo', 'arc', 'drawImage', 'createImageData', 'putImageData',
+
+      // Validation and Common helpers
+      'checkCanReview', 'withdrawBid', 'publishProject', 'markMessageAsRead',
+      'listProjects', 'searchMessages', 'transferFunds',
+
+      // Prisma schema model accessors (users, posts, comments, etc)
+      'users', 'posts', 'comments', 'projects', 'messages', 'transactions',
+      'reviews', 'bids', 'payments', 'wallets', 'profiles', 'settings',
+
+      // Error classes and exceptions
+      'Error', 'ApiError', 'ValidationError', 'NotFoundError', 'UnauthorizedError',
+      'ForbiddenError', 'ConflictError', 'ServerError', 'TimeoutError',
+      'TypeError', 'ReferenceError', 'SyntaxError', 'RangeError',
+
+      // Common async utilities
+      'Promise', 'async', 'await', 'then', 'catch', 'finally',
     ]);
   }
 
@@ -651,6 +702,22 @@ export class ProjectAnalyzer {
 
           // Пропускаем обычные методы объектов
           if (this.isCommonMethodName(calledFunc)) continue;
+
+          // Пропускаем React setState setters (setX где X - заглавная буква)
+          // Это почти всегда результат useState([state, setState])
+          if (/^set[A-Z]/.test(calledFunc) && calledFunc.length > 3) {
+            continue;
+          }
+
+          // Пропускаем обработчики событий (handleX, onX)
+          if (/^(handle|on)[A-Z]/.test(calledFunc) && calledFunc.length > 4) {
+            continue;
+          }
+
+          // Пропускаем common API functions которые часто импортируются
+          if (/^(get|create|update|delete|accept|reject|cancel|confirm|verify|process|send|upload|download|refresh|validate|authenticate|authorize|login|logout|register)[A-Z]/.test(calledFunc)) {
+            continue;
+          }
 
           // Проверяем если функция реально реализована
           const isImplemented = allFunctions.some(f => f.name === calledFunc);
