@@ -385,6 +385,18 @@ export class ProjectAnalyzer {
       'next', 'use', 'get', 'post', 'put', 'patch', 'delete', 'router',
       'status', 'json', 'send', 'redirect', 'render', 'sendFile', 'sendStatus',
       'cookie', 'clearCookie', 'header', 'set', 'getHeader', 'setHeader',
+
+      // chalk color methods
+      'cyan', 'red', 'green', 'yellow', 'blue', 'magenta', 'white', 'gray', 'black',
+      'bgCyan', 'bgRed', 'bgGreen', 'bgYellow', 'bgBlue', 'bgMagenta', 'bgWhite',
+      'bold', 'dim', 'italic', 'underline', 'inverse', 'hidden', 'strikethrough',
+
+      // process and stream methods
+      'exit', 'cwd', 'chdir', 'getenv', 'putenv', 'unsetenv', 'kill', 'uptime',
+      'stdin', 'stdout', 'stderr', 'argv', 'env', 'platform', 'arch', 'version',
+
+      // Map/Set/Object methods
+      'has', 'get', 'set', 'add', 'delete', 'clear', 'size', 'forEach',
     ]);
   }
 
@@ -583,8 +595,14 @@ export class ProjectAnalyzer {
           // Пропускаем встроенные функции и методы
           if (builtInFunctions.has(calledFunc)) continue;
 
-          // Пропускаем функции из импортов (прямой импорт или через деструктуризацию)
-          if (file.imports.some(i => i.name === calledFunc || i.name.includes(calledFunc))) continue;
+          // Пропускаем функции из импортов (точное совпадение имени)
+          if (file.imports.some(i => i.name === calledFunc)) continue;
+
+          // Пропускаем функции из импортов если это namespace import (X.method где X импортирован)
+          if (file.imports.some(i => {
+            const methodBase = calledFunc.split('.')[0];
+            return i.name === methodBase && i.type === 'default-import';
+          })) continue;
 
           // Пропускаем обычные методы объектов
           if (this.isCommonMethodName(calledFunc)) continue;
@@ -593,23 +611,14 @@ export class ProjectAnalyzer {
           const isImplemented = allFunctions.some(f => f.name === calledFunc);
 
           if (!isImplemented) {
-            // Проверяем если это импортируемая функция из npm пакета
-            const isImportedFunction = file.imports.some(imp => {
-              // Если импортируется весь модуль как имя (import * as X from 'y')
-              // и вызывается X.method, то это не missing
-              return imp.name === calledFunc.split('.')[0];
+            issues.push({
+              type: 'missing-function',
+              severity: 'high',
+              location: func.location,
+              description: `Function "${func.name}" calls non-existent function "${calledFunc}"`,
+              suggestion: `Implement function "${calledFunc}" or remove this call`,
+              affectedFunctions: [func.name],
             });
-
-            if (!isImportedFunction) {
-              issues.push({
-                type: 'missing-function',
-                severity: 'high',
-                location: func.location,
-                description: `Function "${func.name}" calls non-existent function "${calledFunc}"`,
-                suggestion: `Implement function "${calledFunc}" or remove this call`,
-                affectedFunctions: [func.name],
-              });
-            }
           }
         }
       }

@@ -55,6 +55,38 @@ export class JavaScriptParser {
       },
       VariableDeclarator: (nodePath: any) => {
         const node = nodePath.node;
+
+        // Handle destructured requires: const { x, y } = require('module')
+        if (node.init && node.init.type === 'CallExpression') {
+          const calleeNode = node.init.callee;
+          if ((calleeNode.name === 'require' || (calleeNode.type === 'Identifier' && calleeNode.name === 'require')) &&
+              node.init.arguments.length > 0) {
+            const moduleSource = node.init.arguments[0].value;
+
+            // Handle destructured pattern: const { x, y } = require('module')
+            if (node.id && node.id.type === 'ObjectPattern' && node.id.properties) {
+              node.id.properties.forEach((prop: any) => {
+                if (prop.key && prop.key.name) {
+                  imports.push({
+                    name: prop.key.name,
+                    from: moduleSource,
+                    type: 'import',
+                  });
+                }
+              });
+            }
+            // Handle default require: const Module = require('module')
+            else if (node.id && node.id.name) {
+              imports.push({
+                name: node.id.name,
+                from: moduleSource,
+                type: 'default-import',
+              });
+            }
+          }
+        }
+
+        // Handle arrow function expressions
         if (node.init && node.init.type === 'ArrowFunctionExpression' && node.id && node.id.name) {
           const func: Function = {
             name: node.id.name,
