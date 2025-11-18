@@ -115,7 +115,7 @@ export interface ProjectCodex {
   searchIndex?: SearchIndex;
   quality?: CodeQuality;
   passport?: ProjectPassport;
-  dataDictionary?: any; // Will be populated by EntityMapper
+  dataCatalog?: any; // Каталог всех типов данных для AI
 }
 
 export interface DependencyGraph {

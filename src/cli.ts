@@ -110,27 +110,43 @@ async function main() {
       }
     }
 
-    // Показываем данные о сущностях (важно для AI!)
-    if (codex.dataDictionary && codex.dataDictionary.entities.length > 0) {
-      console.log(chalk.cyan('\n📊 DATA ENTITIES (for AI clarity):'));
-      console.log(chalk.gray(`  Found ${codex.dataDictionary.entities.length} data entities with mappings`));
+    // Показываем каталог типов данных (для AI)
+    if (codex.dataCatalog && codex.dataCatalog.entities.length > 0) {
+      console.log(chalk.cyan('\n📋 DATA TYPES CATALOG (for AI):'));
+      console.log(chalk.gray(`  Found ${codex.dataCatalog.totalEntities} data types\n`));
 
-      for (const entity of codex.dataDictionary.entities.slice(0, 3)) {
-        console.log(chalk.yellow(`\n  ⚡ ${entity.primaryName}`));
-        console.log(chalk.gray(`     Aliases: ${entity.aliases.join(', ')}`));
-        if (entity.warnings.length > 0) {
-          for (const warning of entity.warnings.slice(0, 2)) {
-            console.log(chalk.red(`     ${warning}`));
+      // Группируем по файлам для лучшей читаемости
+      const byFile = new Map<string, any[]>();
+      for (const entity of codex.dataCatalog.entities) {
+        if (!byFile.has(entity.file)) {
+          byFile.set(entity.file, []);
+        }
+        byFile.get(entity.file)!.push(entity);
+      }
+
+      // Показываем макс 5 файлов с типами
+      let shown = 0;
+      for (const [file, entities] of byFile) {
+        if (shown >= 5) break;
+        console.log(chalk.yellow(`  📄 ${file}`));
+
+        for (const entity of entities.slice(0, 3)) {
+          const fieldList = Object.entries(entity.fields)
+            .slice(0, 3)
+            .map(([k, v]) => `${k}: ${v}`)
+            .join(', ');
+
+          console.log(chalk.gray(`     • ${entity.name} (${entity.type})`));
+          console.log(chalk.gray(`       Fields: ${fieldList}${Object.entries(entity.fields).length > 3 ? '...' : ''}`));
+
+          if (entity.usedIn.length > 0) {
+            console.log(chalk.gray(`       Used in: ${entity.usedIn.slice(0, 2).join(', ')}${entity.usedIn.length > 2 ? '...' : ''}`));
           }
         }
+        shown++;
       }
 
-      if (codex.dataDictionary.typeMismatches.length > 0) {
-        console.log(chalk.yellow('\n  ⚠️  TYPE MISMATCHES (CRITICAL!):'));
-        for (const mismatch of codex.dataDictionary.typeMismatches.slice(0, 3)) {
-          console.log(chalk.red(`     ${mismatch}`));
-        }
-      }
+      console.log(chalk.gray(`\n  💡 Tip: All types are in kensys.json for AI to analyze`));
     }
 
     console.log(chalk.green(`\n📊 Files analyzed: ${codex.filesAnalyzed}`));

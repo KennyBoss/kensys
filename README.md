@@ -221,6 +221,69 @@ kensys analyze ./casino-backend
 - Улучшенная детекция missing функций (Prisma, Express и т.д.)
 - Лучшая парсинг импортов через деструктуризацию
 
+## 📋 Что нового в 1.5.0
+
+✨ **SIMPLE & SMART - просто каталог, AI разбирается сам!**
+
+**Учли твой совет:** Не нужно анализатору пытаться угадывать что money = coin!
+
+Новый подход:
+- ✅ Собираем ВСЕ типы данных как есть
+- ✅ Показываем где каждый тип используется (usedIn)
+- ✅ Выкладываем в JSON для AI
+- ✅ **AI сам разбирается что это разное!**
+
+```
+📋 DATA TYPES CATALOG (for AI):
+  Found 47 data types
+
+  📄 user.ts
+     • User (interface)
+       Fields: id: string, name: string, email: string...
+       Used in: getUserById, updateUser, ...
+
+     • UserProfile (type)
+       Fields: userId: string, bio: string, avatar: string...
+       Used in: getUserProfile, ...
+
+  📄 transaction.ts
+     • Transaction (interface)
+       Fields: id: string, amount: decimal, status: string...
+       Used in: createTransaction, ...
+```
+
+**Преимущество:**
+- Apple Store cart, Google Play cart, одежда cart - **все видны как РАЗНЫЕ**
+- Money (decimal) vs Coin (bigint) - **AI видит типы и понимает что разное**
+- Никакого словаря - просто ФАКТЫ из кода!
+
+**Всё в JSON:**
+```json
+{
+  "dataCatalog": {
+    "totalEntities": 47,
+    "entities": [
+      {
+        "name": "Money",
+        "type": "interface",
+        "fields": { "amount": "decimal", "currency": "string" },
+        "location": "src/payments/money.ts",
+        "usedIn": ["payWithCard", "transfer"]
+      },
+      {
+        "name": "Coin",
+        "type": "interface",
+        "fields": { "count": "bigint", "symbol": "string" },
+        "location": "src/blockchain/coin.ts",
+        "usedIn": ["mine", "stake"]
+      }
+    ]
+  }
+}
+```
+
+AI видит разные папки, разные типы, разные функции → **НЕ путает!** 🎯
+
 ## 📋 Что нового в 1.4.0
 
 🎯 **DATA ENTITY MAPPER - CRITICAL для правильности AI кода!**
