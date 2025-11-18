@@ -55,6 +55,25 @@ export interface Feature {
   dependencies: string[]; // Зависит от других фич
 }
 
+export interface CodeIssue {
+  type: 'missing-function' | 'todo' | 'fixme' | 'error-handling' | 'risk';
+  severity: 'low' | 'medium' | 'high';
+  location: CodeLocation;
+  description: string;
+  suggestion?: string;
+  affectedFunctions?: string[];
+}
+
+export interface CodeQuality {
+  totalFunctions: number;
+  functionsWithDocstring: number;
+  functionsWithErrorHandling: number;
+  todoCount: number;
+  fixmeCount: number;
+  issues: CodeIssue[];
+  recommendations: string[];
+}
+
 export interface ProjectCodex {
   projectName: string;
   description?: string;
@@ -66,6 +85,7 @@ export interface ProjectCodex {
   allClasses: Class[];
   dependencies: DependencyGraph;
   searchIndex?: SearchIndex;
+  quality?: CodeQuality;
 }
 
 export interface DependencyGraph {

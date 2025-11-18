@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { glob } from 'glob';
-import type { FileAnalysis, ProjectCodex, Feature, DependencyGraph, DependencyNode, DependencyEdge, SearchIndex, Function } from '../models/types';
+import type { FileAnalysis, ProjectCodex, Feature, DependencyGraph, DependencyNode, DependencyEdge, SearchIndex, Function, CodeQuality, CodeIssue } from '../models/types';
 import JavaScriptParser from '../parser/js-parser';
 
 export class ProjectAnalyzer {
@@ -46,6 +46,9 @@ export class ProjectAnalyzer {
     // Создаём индекс поиска
     const searchIndex = this.createSearchIndex();
 
+    // Анализируем качество кода
+    const quality = this.analyzeCodeQuality();
+
     const allFunctions = this.allFiles.flatMap(f => f.functions);
     const allClasses = this.allFiles.flatMap(f => f.classes);
 
@@ -59,6 +62,7 @@ export class ProjectAnalyzer {
       allClasses,
       dependencies,
       searchIndex,
+      quality,
     };
   }
 
@@ -297,6 +301,167 @@ export class ProjectAnalyzer {
     }
 
     return Array.from(languages).join(', ') || 'unknown';
+  }
+
+  /**
+   * Анализирует качество кода и находит проблемы
+   */
+  private analyzeCodeQuality(): CodeQuality {
+    const issues: CodeIssue[] = [];
+    const allFunctions = this.allFiles.flatMap(f => f.functions);
+    let functionsWithDocstring = 0;
+    let functionsWithErrorHandling = 0;
+    let todoCount = 0;
+    let fixmeCount = 0;
+    const recommendations: string[] = [];
+
+    // Анализируем каждый файл
+    for (const file of this.allFiles) {
+      const fileContent = fs.readFileSync(file.path, 'utf-8');
+      const lines = fileContent.split('\n');
+
+      // 1. Ищем TODO и FIXME комментарии
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (line.includes('TODO')) {
+          todoCount++;
+          issues.push({
+            type: 'todo',
+            severity: 'low',
+            location: { file: file.path, line: i + 1 },
+            description: `TODO: ${line.trim().substring(0, 80)}`,
+          });
+        }
+        if (line.includes('FIXME')) {
+          fixmeCount++;
+          issues.push({
+            type: 'fixme',
+            severity: 'medium',
+            location: { file: file.path, line: i + 1 },
+            description: `FIXME: ${line.trim().substring(0, 80)}`,
+          });
+        }
+      }
+
+      // 2. Анализируем функции в этом файле
+      for (const func of file.functions) {
+        // Проверяем документацию
+        if (func.docstring && func.docstring.length > 10) {
+          functionsWithDocstring++;
+        }
+
+        // Проверяем обработку ошибок
+        const funcContent = fileContent.substring(0, fileContent.length);
+        if (funcContent.includes('try') && funcContent.includes('catch')) {
+          functionsWithErrorHandling++;
+        }
+
+        // 3. Находим недостающие функции (вызываются но не реализованы)
+        for (const calledFunc of func.calls) {
+          const isImplemented = allFunctions.some(f => f.name === calledFunc);
+          if (!isImplemented) {
+            issues.push({
+              type: 'missing-function',
+              severity: 'high',
+              location: func.location,
+              description: `Function "${func.name}" calls non-existent function "${calledFunc}"`,
+              suggestion: `Implement function "${calledFunc}" or remove this call`,
+              affectedFunctions: [func.name],
+            });
+          }
+        }
+      }
+    }
+
+    // 4. Анализируем риски
+    for (const file of this.allFiles) {
+      const fileContent = fs.readFileSync(file.path, 'utf-8');
+
+      // Проверяем на потенциально опасные паттерны
+      if (
+        fileContent.includes('eval(') ||
+        fileContent.includes('JSON.parse(') ||
+        fileContent.includes('require(')
+      ) {
+        issues.push({
+          type: 'risk',
+          severity: 'high',
+          location: { file: file.path, line: 1 },
+          description: `File contains potentially dangerous patterns (eval, JSON.parse, require)`,
+          suggestion: `Review this file for security issues`,
+        });
+      }
+
+      // Проверяем на отсутствие обработки ошибок
+      if (
+        fileContent.includes('async') &&
+        !fileContent.includes('try') &&
+        !fileContent.includes('catch')
+      ) {
+        issues.push({
+          type: 'error-handling',
+          severity: 'medium',
+          location: { file: file.path, line: 1 },
+          description: `Async functions without error handling detected`,
+          suggestion: `Add try-catch blocks for async operations`,
+        });
+      }
+    }
+
+    // 5. Генерируем рекомендации
+    const docstringPercentage =
+      allFunctions.length > 0
+        ? Math.round((functionsWithDocstring / allFunctions.length) * 100)
+        : 0;
+
+    if (docstringPercentage < 50) {
+      recommendations.push(
+        `⚠️ Only ${docstringPercentage}% of functions have documentation. Target: 80%+`
+      );
+    }
+
+    const errorHandlingPercentage =
+      allFunctions.length > 0
+        ? Math.round((functionsWithErrorHandling / allFunctions.length) * 100)
+        : 0;
+
+    if (errorHandlingPercentage < 30) {
+      recommendations.push(
+        `⚠️ Only ${errorHandlingPercentage}% of functions have error handling. Consider adding try-catch blocks`
+      );
+    }
+
+    if (todoCount > 10) {
+      recommendations.push(
+        `⚠️ ${todoCount} TODO comments found. Consider addressing them in future sprints`
+      );
+    }
+
+    if (issues.filter(i => i.type === 'missing-function').length > 0) {
+      recommendations.push(
+        `❌ ${issues.filter(i => i.type === 'missing-function').length} missing functions detected. Implement them or remove calls`
+      );
+    }
+
+    if (allFunctions.length > 100) {
+      recommendations.push(
+        `💡 Large number of functions (${allFunctions.length}). Consider breaking into smaller modules`
+      );
+    }
+
+    if (recommendations.length === 0) {
+      recommendations.push(`✅ Good code quality! Keep up the excellent work!`);
+    }
+
+    return {
+      totalFunctions: allFunctions.length,
+      functionsWithDocstring,
+      functionsWithErrorHandling,
+      todoCount,
+      fixmeCount,
+      issues,
+      recommendations,
+    };
   }
 }
 

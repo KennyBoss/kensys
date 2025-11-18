@@ -82,6 +82,37 @@ async function main() {
     console.log(chalk.green(`🔧 Functions found: ${codex.allFunctions.length}`));
     console.log(chalk.green(`📦 Classes found: ${codex.allClasses.length}`));
     console.log(chalk.green(`🎯 Features identified: ${codex.features.length}`));
+
+    // Показываем информацию о качестве кода
+    if (codex.quality) {
+      console.log(chalk.cyan('\n📈 Code Quality:'));
+      console.log(chalk.gray(`  📝 Functions with documentation: ${codex.quality.functionsWithDocstring}/${codex.quality.totalFunctions}`));
+      console.log(chalk.gray(`  🛡️  Functions with error handling: ${codex.quality.functionsWithErrorHandling}/${codex.quality.totalFunctions}`));
+      console.log(chalk.gray(`  📌 TODO comments: ${codex.quality.todoCount}`));
+      console.log(chalk.gray(`  ⚠️  FIXME comments: ${codex.quality.fixmeCount}`));
+
+      if (codex.quality.issues.length > 0) {
+        console.log(chalk.yellow(`\n⚠️  Issues found: ${codex.quality.issues.length}`));
+        // Показываем только критические issues
+        const criticalIssues = codex.quality.issues
+          .filter(i => i.severity === 'high')
+          .slice(0, 5);
+        for (const issue of criticalIssues) {
+          console.log(chalk.red(`  ❌ [${issue.type}] ${issue.description}`));
+        }
+        if (codex.quality.issues.length > 5) {
+          console.log(chalk.gray(`  ... and ${codex.quality.issues.length - 5} more issues`));
+        }
+      }
+
+      if (codex.quality.recommendations.length > 0) {
+        console.log(chalk.cyan('\n💡 Recommendations:'));
+        for (const rec of codex.quality.recommendations.slice(0, 3)) {
+          console.log(chalk.gray(`  ${rec}`));
+        }
+      }
+    }
+
     console.log(chalk.green(`\n📄 Codex saved to: ${outputPath}\n`));
 
     // Показываем краткую информацию о фичах
