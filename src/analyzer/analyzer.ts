@@ -304,6 +304,95 @@ export class ProjectAnalyzer {
   }
 
   /**
+   * Возвращает встроенные функции и методы которые не нужно анализировать
+   */
+  private getBuiltInFunctions(): Set<string> {
+    return new Set([
+      // Global constructors and functions
+      'console', 'JSON', 'Math', 'Date', 'Array', 'Object', 'String', 'Number',
+      'Boolean', 'Symbol', 'WeakMap', 'WeakSet', 'Map', 'Set', 'Promise',
+      'Error', 'TypeError', 'ReferenceError', 'SyntaxError', 'RangeError',
+      'URIError', 'EvalError', 'AggregateError',
+      'setTimeout', 'setInterval', 'clearTimeout', 'clearInterval',
+      'parseInt', 'parseFloat', 'isNaN', 'isFinite', 'decodeURI', 'encodeURI',
+      'encodeURIComponent', 'decodeURIComponent',
+      'eval', 'fetch', 'alert', 'confirm', 'prompt', 'Buffer', 'process',
+      'global', 'globalThis', 'Infinity', 'undefined',
+
+      // Common console methods
+      'log', 'error', 'warn', 'info', 'debug', 'assert', 'trace', 'group',
+      'groupEnd', 'groupCollapsed', 'table', 'time', 'timeEnd', 'profile',
+      'profileEnd', 'count', 'clear', 'dir', 'dirxml',
+
+      // Array methods
+      'map', 'filter', 'reduce', 'reduceRight', 'forEach', 'find', 'findIndex',
+      'every', 'some', 'includes', 'indexOf', 'lastIndexOf', 'slice', 'splice',
+      'concat', 'join', 'reverse', 'sort', 'push', 'pop', 'shift', 'unshift',
+      'fill', 'flat', 'flatMap', 'at', 'copyWithin',
+
+      // String methods
+      'charAt', 'charCodeAt', 'codePointAt', 'includes', 'match', 'matchAll',
+      'repeat', 'replace', 'replaceAll', 'search', 'split', 'substring', 'substr',
+      'toLowerCase', 'toUpperCase', 'toLocaleUpperCase', 'toLocaleLowerCase',
+      'trim', 'trimStart', 'trimEnd', 'padStart', 'padEnd', 'startsWith', 'endsWith',
+      'localeCompare', 'normalize', 'fromCharCode', 'fromCodePoint',
+
+      // Date methods
+      'now', 'parse', 'UTC', 'getTime', 'getUTCDate', 'getDay', 'getMonth',
+      'getFullYear', 'getHours', 'getMinutes', 'getSeconds', 'getMilliseconds',
+      'setTime', 'setDate', 'setMonth', 'setFullYear', 'setHours', 'setMinutes',
+      'setSeconds', 'setMilliseconds', 'toString', 'toISOString', 'toJSON',
+      'toLocaleString', 'toLocaleDateString', 'toLocaleTimeString',
+
+      // JSON methods
+      'parse', 'stringify',
+
+      // Math methods
+      'abs', 'acos', 'asin', 'atan', 'atan2', 'ceil', 'cos', 'exp', 'floor',
+      'log', 'max', 'min', 'pow', 'random', 'round', 'sin', 'sqrt', 'tan',
+      'trunc', 'sign', 'cbrt', 'hypot', 'clz32', 'cosh', 'sinh', 'tanh',
+
+      // Object methods
+      'keys', 'values', 'entries', 'assign', 'create', 'defineProperty',
+      'defineProperties', 'freeze', 'seal', 'preventExtensions', 'isFrozen',
+      'isSealed', 'isExtensible', 'getPrototypeOf', 'setPrototypeOf',
+      'getOwnPropertyNames', 'getOwnPropertyDescriptor', 'getOwnPropertyDescriptors',
+      'getOwnPropertySymbols', 'hasOwnProperty', 'propertyIsEnumerable',
+      'toString', 'valueOf', 'toLocaleString',
+
+      // Promise methods
+      'then', 'catch', 'finally', 'all', 'race', 'allSettled', 'any', 'resolve',
+      'reject',
+
+      // Common npm packages and methods
+      'require', 'readFile', 'writeFile', 'readFileSync', 'writeFileSync',
+      'dirname', 'basename', 'join', 'resolve', 'relative', 'parse', 'format',
+      'normalize', 'isAbsolute', 'existsSync', 'stat', 'lstat', 'unlink', 'mkdir',
+      'rmdir', 'readdir', 'copyFile', 'rename', 'chmod', 'chown', 'access',
+      'listen', 'close', 'send', 'end', 'on', 'emit', 'once', 'off', 'removeListener',
+      'connect', 'disconnect', 'save', 'delete', 'create', 'findOne', 'find', 'update',
+      'exec', 'run', 'query', 'execute', 'deleteMany', 'all', 'hash', 'render',
+      'next', 'use', 'get', 'post', 'put', 'patch', 'delete', 'router',
+      'status', 'json', 'send', 'redirect', 'render', 'sendFile', 'sendStatus',
+      'cookie', 'clearCookie', 'header', 'set', 'getHeader', 'setHeader',
+    ]);
+  }
+
+  /**
+   * Проверяет если это обычное имя метода (типа "delete", "save", "create")
+   * которое вызывается на объектах а не как отдельная функция
+   */
+  private isCommonMethodName(funcName: string): boolean {
+    const commonMethods = new Set([
+      'delete', 'save', 'create', 'update', 'remove', 'destroy', 'find',
+      'findOne', 'findAll', 'get', 'set', 'add', 'remove', 'clear',
+      'init', 'close', 'open', 'read', 'write', 'parse', 'serialize',
+      'validate', 'check', 'verify', 'authenticate', 'authorize',
+    ]);
+    return commonMethods.has(funcName);
+  }
+
+  /**
    * Анализирует качество кода и находит проблемы
    */
   private analyzeCodeQuality(): CodeQuality {
@@ -314,6 +403,9 @@ export class ProjectAnalyzer {
     let todoCount = 0;
     let fixmeCount = 0;
     const recommendations: string[] = [];
+
+    // Встроенные функции и методы которые не нужно анализировать
+    const builtInFunctions = this.getBuiltInFunctions();
 
     // Анализируем каждый файл
     for (const file of this.allFiles) {
@@ -358,16 +450,36 @@ export class ProjectAnalyzer {
 
         // 3. Находим недостающие функции (вызываются но не реализованы)
         for (const calledFunc of func.calls) {
+          // Пропускаем встроенные функции и методы
+          if (builtInFunctions.has(calledFunc)) continue;
+
+          // Пропускаем функции из импортов (прямой импорт или через деструктуризацию)
+          if (file.imports.some(i => i.name === calledFunc || i.name.includes(calledFunc))) continue;
+
+          // Пропускаем обычные методы объектов
+          if (this.isCommonMethodName(calledFunc)) continue;
+
+          // Проверяем если функция реально реализована
           const isImplemented = allFunctions.some(f => f.name === calledFunc);
+
           if (!isImplemented) {
-            issues.push({
-              type: 'missing-function',
-              severity: 'high',
-              location: func.location,
-              description: `Function "${func.name}" calls non-existent function "${calledFunc}"`,
-              suggestion: `Implement function "${calledFunc}" or remove this call`,
-              affectedFunctions: [func.name],
+            // Проверяем если это импортируемая функция из npm пакета
+            const isImportedFunction = file.imports.some(imp => {
+              // Если импортируется весь модуль как имя (import * as X from 'y')
+              // и вызывается X.method, то это не missing
+              return imp.name === calledFunc.split('.')[0];
             });
+
+            if (!isImportedFunction) {
+              issues.push({
+                type: 'missing-function',
+                severity: 'high',
+                location: func.location,
+                description: `Function "${func.name}" calls non-existent function "${calledFunc}"`,
+                suggestion: `Implement function "${calledFunc}" or remove this call`,
+                affectedFunctions: [func.name],
+              });
+            }
           }
         }
       }

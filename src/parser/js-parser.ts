@@ -205,6 +205,48 @@ export class JavaScriptParser {
     return keywords.includes(word);
   }
 
+  /**
+   * Встроенные функции и методы JavaScript (не нужно анализировать их реализацию)
+   */
+  private isBuiltInFunction(funcName: string): boolean {
+    const builtIns = new Set([
+      // Global functions
+      'console', 'JSON', 'Math', 'Date', 'Array', 'Object', 'String', 'Number',
+      'Boolean', 'Symbol', 'WeakMap', 'WeakSet', 'Map', 'Set', 'Promise',
+      'setTimeout', 'setInterval', 'clearTimeout', 'clearInterval',
+      'parseInt', 'parseFloat', 'isNaN', 'isFinite', 'decodeURI', 'encodeURI',
+      'eval', 'fetch', 'alert', 'confirm', 'prompt',
+
+      // Console methods
+      'log', 'error', 'warn', 'info', 'debug', 'assert', 'trace', 'group',
+      'groupEnd', 'groupCollapsed', 'table', 'time', 'timeEnd', 'profile',
+      'profileEnd', 'count', 'clear',
+
+      // Array methods
+      'map', 'filter', 'reduce', 'forEach', 'find', 'findIndex', 'every',
+      'some', 'includes', 'indexOf', 'lastIndexOf', 'slice', 'splice',
+      'concat', 'join', 'reverse', 'sort', 'push', 'pop', 'shift', 'unshift',
+      'fill', 'flat', 'flatMap',
+
+      // String methods
+      'charAt', 'charCodeAt', 'concat', 'includes', 'indexOf', 'lastIndexOf',
+      'match', 'repeat', 'replace', 'replaceAll', 'search', 'slice', 'split',
+      'substring', 'substr', 'toLowerCase', 'toUpperCase', 'trim', 'trimStart',
+      'trimEnd', 'padStart', 'padEnd', 'startsWith', 'endsWith',
+
+      // Object methods
+      'keys', 'values', 'entries', 'assign', 'create', 'defineProperty',
+      'defineProperties', 'freeze', 'seal', 'getPrototypeOf', 'setPrototypeOf',
+      'hasOwnProperty', 'toString', 'valueOf',
+
+      // Promise methods
+      'then', 'catch', 'finally', 'all', 'race', 'allSettled', 'any', 'resolve',
+      'reject',
+    ]);
+
+    return builtIns.has(funcName);
+  }
+
   private getLocation(node: any, filePath: string): CodeLocation {
     return {
       file: filePath,
